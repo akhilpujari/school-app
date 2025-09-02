@@ -62,19 +62,22 @@ export default async function addSchool(req, res) {
       return res.status(405).json({ message: "Method not allowed" });
     }
 
+    console.log("Starting form parsing...");
     const { fields, files } = await parseForm(req);
+    console.log("Form parsed successfully");
 
     const schoolImage = Array.isArray(files.schoolImage)
       ? files.schoolImage[0]
       : files.schoolImage;
 
-    // Extract field values (formidable returns arrays)
     const schoolName = fields.schoolName?.[0] || '';
     const email = fields.email?.[0] || '';
     const address = fields.address?.[0] || '';
     const city = fields.city?.[0] || '';
     const state = fields.state?.[0] || '';
     const contact = fields.contact?.[0] || '';
+
+    console.log("Extracted fields:", { schoolName, email, address, city, state, contact });
 
     const data = { 
       schoolName, 
@@ -88,6 +91,7 @@ export default async function addSchool(req, res) {
 
     const error = validateData(data);
     if (error) {
+      console.log("Validation error:", error);
       if (schoolImage && fs.existsSync(schoolImage.filepath)) fs.unlinkSync(schoolImage.filepath);
       return res.status(400).json({ message: `Please enter valid ${error}` });
     }
@@ -95,27 +99,35 @@ export default async function addSchool(req, res) {
     const newFilename = generateUniqueFilename(schoolImage.originalFilename);
     const newFilePath = path.join(uploadDir, newFilename);
     fs.renameSync(schoolImage.filepath, newFilePath);
+    console.log("File saved as:", newFilename);
 
-    // PostgreSQL parameterized query with $ placeholders
     const query = `
       INSERT INTO schools (name, email, address, city, state, contact, image)
       VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING id
     `;
     
-    const result = await db.query(query, [
-      schoolName,
-      email,
-      address,
-      city,
-      state,
-      contact,
-      newFilename,
-    ]);
+    const values = [schoolName, email, address, city, state, contact, newFilename];
+    console.log("Executing query:", query);
+    console.log("With values:", values);
+
+    const result = await db.query(query, values);
+    console.log("Database insert successful, ID:", result.rows[0].id);
 
     return res.status(200).json({ ok: true, message: "School added successfully" });
+    
   } catch (err) {
-    console.error("Database error:", err);
-    return res.status(500).json({ message: "Internal server error" });
+    console.error("FULL ERROR DETAILS:", err);
+    console.error("Error stack:", err.stack);
+
+    if (err.code) {
+      console.error("PostgreSQL error code:", err.code);
+      console.error("PostgreSQL error message:", err.message);
+    }
+    
+    return res.status(500).json({ 
+      message: "Internal server error",
+      details: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
   }
 }
