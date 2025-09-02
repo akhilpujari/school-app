@@ -9,9 +9,17 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.57.0",
+    "bootstrap": "^5.3.8",
+    "bootstrap-icons": "^1.13.1",
+    "formidable": "^3.5.4",
+    "mysql2": "^3.14.4",
     "next": "15.5.2",
+    "pg": "^8.16.3",
     "react": "19.1.1",
-    "react-dom": "19.1.1"
+    "react-dom": "19.1.1",
+    "react-hook-form": "^7.62.0",
+    "react-hot-toast": "^2.6.0"
   },
   "devDependencies": {
     "eslint": "9.34.0",
